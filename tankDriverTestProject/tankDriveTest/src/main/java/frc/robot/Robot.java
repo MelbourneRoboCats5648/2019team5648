@@ -38,12 +38,12 @@ public class Robot extends TimedRobot {
   boolean hatchOpen;
   private boolean intake = false;
   private boolean outtake = false;
-  private Spark m_intakeMotor; // todo x2
+  private Talon m_intakeMotor;
   DoubleSolenoid climbingfront;
   DoubleSolenoid climbingback;
   boolean climbingfrontopen;
   boolean climbingbackopen;
-  private Spark m_winchmotor;   
+  private Talon m_winchmotor;   
 
 
   @Override
@@ -56,8 +56,8 @@ public class Robot extends TimedRobot {
     m_myRobotTalon = new DifferentialDrive(new PWMTalonSRX(8), new PWMTalonSRX(9));
     
     // Setup intake motors
-    m_intakeMotor = new Spark(2);
-    m_winchmotor = new Spark(4);
+    m_intakeMotor = new Talon(2);
+    m_winchmotor = new Talon(4);
 
     // Create debug tables
     ntInstance = NetworkTableInstance.getDefault();
@@ -89,6 +89,23 @@ public class Robot extends TimedRobot {
 
     // Start compressor
     compressor.setClosedLoopControl(true);
+
+    // Start camera server
+    try{
+      UsbCamera cameraFront = CameraServer.getInstance().startAutomaticCapture(0);
+      UsbCamera cameraBack  = CameraServer.getInstance().startAutomaticCapture(1);
+      // Set the camera video mode
+      VideoMode[] modeFront = cameraFront.enumerateVideoModes();
+      VideoMode[] modeBack = cameraFront.enumerateVideoModes();
+
+      cameraFront.setVideoMode(modeFront[100]);
+      cameraBack.setVideoMode(modeBack[100]);
+    }
+    catch (Exception e)
+    {
+      System.err.println("No USB Camera Found");
+    }
+    
   }
 
   @Override
@@ -113,13 +130,13 @@ public class Robot extends TimedRobot {
     // This raises the winch for the motor intake 
     if(m_primaryController.getPOV() == 0){
       // D-Pad Up
-      m_winchmotor.set(0.1);
+      m_winchmotor.set(-1.0);
       }
     else if(m_primaryController.getPOV() == 180){
-      m_winchmotor.set(-0.1);
+      m_winchmotor.set(1.0);
       // D-Pad Down
     }
-    else{
+    else{;
       m_winchmotor.set(0.0); 
     }
   }
@@ -167,35 +184,34 @@ public class Robot extends TimedRobot {
 
   public void arcadeDrive() {
     // Arcade drive motor control
-    var forward = m_primaryController.getY(Hand.kLeft)*0.7;
+    var forward = m_primaryController.getY(Hand.kLeft)*0.8;
     var spin = m_primaryController.getX(Hand.kRight)*0.45;
     m_myRobot.arcadeDrive(forward, spin, false);
     m_myRobotTalon.arcadeDrive(forward, spin, false);
   }
 
-  public void motorIntake() {
-    // Ball intake motor control
-    if (m_primaryController.getAButtonPressed()); {
+  public void motorIntake(){
+    //Ball intake motor control
+    //A - Intake
+    //Y - Outtake
+    //B - Off
+    if (m_primaryController.getAButtonPressed()) {
       intake = true;
       outtake = false;
     }
 
-    if (m_primaryController.getYButtonPressed()); {
-      outtake = true;
+    if (m_primaryController.getYButtonPressed()) {
+      outtake = true; 
       intake = false;
     }
 
-    if (m_primaryController.getBButtonPressed()); {
+    if (m_primaryController.getBButtonPressed()) {
       intake = false;
-      outtake = false;     
+      outtake = false;
     }
-    
-    //button for intake - A
-    //button for outtake - Y
-    //button to stop - B
 
-    if (intake == true) {m_intakeMotor.set(0.0);}
-    if (outtake == true) {m_intakeMotor.set(-0.5);}
+    if (intake == true) {m_intakeMotor.set(-0.3);}
+    if (outtake == true) {m_intakeMotor.set(1.0);}
     if (intake == false && outtake == false) {m_intakeMotor.set(0);}
   }
 }
